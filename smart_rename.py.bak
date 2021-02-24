@@ -1,0 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+Smart Rename
+
+This is a tool for automated renaming of downloaded files.
+"""
+
+def main():
+    print("running...")
+
+if __name__ == "__main__":
+    main()
