@@ -1,7 +1,7 @@
 from collections import namedtuple as ntup
 import os
 from cement import App, CaughtSignal, Controller, get_version
-import ngrams
+import wordsegment as ws
 
 VERSION = (0, 0, 1, 'alpha', 0)
 
@@ -23,7 +23,7 @@ class Renamer():
         result_segments = []
         # Process each segment individually
         for token in filename.split('_'):
-            prob, words = ngrams.segment2(token)
+            words = ws.segment(token)
             # To title case
             words = [
                     words[0][:1].upper() + words[0][1:]
@@ -53,6 +53,9 @@ class Base(Controller):
 
     def _default(self):
         """Default action if no sub-command is passed."""
+        print("Initializing")
+        ws.load()
+
         print("Start processing files")
         print("")
         r = Renamer()
