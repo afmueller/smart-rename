@@ -1,7 +1,10 @@
 from collections import namedtuple as ntup
 import os
+
 from cement import App, CaughtSignal, Controller, get_version
-import wordsegment as ws
+
+from segmenter import Segmenter
+
 
 VERSION = (0, 0, 1, 'alpha', 0)
 
@@ -16,6 +19,9 @@ class Renamer():
                   "to", "on", "as", "at", "by", "in", "of", "mid", "off", 
                   "per", "qua", "re", "up", "via", "o'", "'n'", "n'"]
     
+    def __init__(self):
+        self._ws = Segmenter()
+    
     def suggest_correction(self, filepath):
         filename = os.path.basename(filepath)
         filename, ext = os.path.splitext(filename)
@@ -23,7 +29,8 @@ class Renamer():
         result_segments = []
         # Process each segment individually
         for token in filename.split('_'):
-            words = ws.segment(token)
+            print(token)
+            words = self._ws.segment(token)
             # To title case
             words = [
                     words[0][:1].upper() + words[0][1:]
@@ -54,11 +61,10 @@ class Base(Controller):
     def _default(self):
         """Default action if no sub-command is passed."""
         print("Initializing")
-        ws.load()
-
+        r = Renamer()
+        
         print("Start processing files")
         print("")
-        r = Renamer()
         T = ntup('T', ['path', 'suggestion', 'correction'])
 
         # Get list of paths
