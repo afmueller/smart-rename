@@ -1,7 +1,9 @@
 from collections import namedtuple as ntup
+import logging
 import os
 
 from cement import App, CaughtSignal, Controller, get_version
+import hcl2
 
 from segmenter import Segmenter
 
@@ -19,7 +21,10 @@ class Renamer():
                   "to", "on", "as", "at", "by", "in", "of", "mid", "off", 
                   "per", "qua", "re", "up", "via", "o'", "'n'", "n'"]
     
-    def __init__(self):
+    def __init__(self, config = None):
+        
+        #TODO: Get unigrams and bigrams from config object (unigrams and bigrams coming from different files)
+        
         self._ws = Segmenter()
     
     def suggest_correction(self, filepath):
@@ -60,11 +65,21 @@ class Base(Controller):
 
     def _default(self):
         """Default action if no sub-command is passed."""
-        print("Initializing")
-        r = Renamer()
-        
-        print("Start processing files")
-        print("")
+
+        # Initialize classes
+        print('Initializing')
+        config = {}
+        try:
+            with open('config.hcl', 'r') as cf:
+                config = hcl2.load(cf)
+        except FileNotFoundError as err:
+            logging.warn('Config file config.hcl not found.')
+
+        r = Renamer(config)
+
+        # Startup        
+        print('Start processing files', os.linesep)
+        # Define namedtuple for storing suggestions
         T = ntup('T', ['path', 'suggestion', 'correction'])
 
         # Get list of paths
@@ -75,31 +90,38 @@ class Base(Controller):
         while not suggestions_accepted:
             # 1. Configure algorithm (or use defaults, if nothing specified)
             if False:
-                print("Configuring algorithm")
+                print('Configuring algorithm')
         
             # 2. Get suggestions for new names
             suggestions = [T(p, r.suggest_correction(p), '') for p in path_list]
         
             # 3. Display suggestions
             for (path_orig, path_sugg, path_corr) in suggestions:
-                print("Renaming {}:".format(path_orig))
-                print("  -> {}".format(path_corr if path_corr else path_sugg))
+                print('Renaming {}:'.format(path_orig))
+                print('  -> {}'.format(path_corr if path_corr else path_sugg))
         
             # 4. Display prompt and ask for suggestions
-            print("")
-            print("Proceed with suggestions? y/a/e/l/? [y]")
+            print()
+            print('Proceed with suggestions? y/a/e/l/? [y]')
             answer = input().strip().lower()
-            if (answer == "a"):
+            if (answer == 'a'):
+                # abort
                 return
-            elif (answer == "e"):
+            elif (answer == 'e'):
+                # edit suggestions
                 raise NotImplementedError()
-            elif (answer == "l"):
+            elif (answer == 'l'):
+                # switch language
                 raise NotImplementedError()
-            elif (answer == "y" | answer == ""):
+            elif (answer == '?'):
+                # print help
+                raise NotImplementedError()
+            elif (answer == 'y' | answer == ''):
+                # default option: accept suggestions
                 suggestions_accepted = True
         
         # When satisfied with results, rename files
-        print("Renaming files...")
+        print('Renaming files...')
     
 
 
