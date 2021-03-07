@@ -1,5 +1,4 @@
 from collections import namedtuple as ntup
-import logging
 import os
 
 from cement import App, CaughtSignal, Controller, get_version
@@ -23,9 +22,10 @@ class Renamer():
     
     def __init__(self, config = None):
         
-        #TODO: Get unigrams and bigrams from config object (unigrams and bigrams coming from different files)
-        
         self._ws = Segmenter()
+        
+        #TODO: Get unigrams and bigrams from config object (unigrams and bigrams coming from different files)
+        print(type(config))
     
     def suggest_correction(self, filepath):
         filename = os.path.basename(filepath)
@@ -57,7 +57,7 @@ class Base(Controller):
             ( [ '-v', '--version' ],
               { 'action'  : 'version',
                 'version' : VERSION_BANNER } ),
-            (['files'],
+            ( ['files'],
               { 'action' : 'store',
                 'nargs'  : '+'} )
         ]
@@ -69,11 +69,13 @@ class Base(Controller):
         # Initialize classes
         print('Initializing')
         config = {}
+        self.app.log.debug('trying to load config file')
         try:
             with open('config.hcl', 'r') as cf:
                 config = hcl2.load(cf)
+                self.app.log.debug('loaded config file config.hcl.')
         except FileNotFoundError as err:
-            logging.warn('Config file config.hcl not found.')
+            self.app.log.info('config file config.hcl not found. Using default configuration.')
 
         r = Renamer(config)
 
