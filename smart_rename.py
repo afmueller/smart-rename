@@ -1,4 +1,3 @@
-from collections import namedtuple as ntup
 import json
 import os
 
@@ -86,8 +85,6 @@ class Base(Controller):
 
         # Startup        
         print('Start processing files', os.linesep)
-        # Define namedtuple for storing suggestions
-        T = ntup('T', ['path', 'suggestion', 'correction'])
 
         # Get list of paths
         path_list = self.app.pargs.files
@@ -100,12 +97,13 @@ class Base(Controller):
                 print('Configuring algorithm')
         
             # 2. Get suggestions for new names
-            suggestions = [T(p, r.suggest_correction(p), '') for p in path_list]
+            suggestions = [{'path': p, 'suggestion': r.suggest_correction(p)} for p in path_list]
         
             # 3. Display suggestions
-            for (path_orig, path_sugg, path_corr) in suggestions:
-                print('Renaming {}:'.format(path_orig))
-                print('  -> {}'.format(path_corr if path_corr else path_sugg))
+            for entry in suggestions:
+                print('Renaming {}:'.format(entry['path']))
+                print('  -> {}'.format( entry['correction'] if 'correction'in entry
+                                        else entry['suggestion']))
         
             # 4. Display prompt and ask for suggestions
             print()
@@ -123,13 +121,18 @@ class Base(Controller):
             elif (answer == '?'):
                 # print help
                 raise NotImplementedError()
-            elif (answer == 'y' | answer == ''):
+            elif ((answer == 'y') or (answer == '')):
                 # default option: accept suggestions
                 suggestions_accepted = True
         
         # When satisfied with results, rename files
-        print('Renaming files...')
-    
+        print('Renaming files. . .', end='')
+        for entry in suggestions:
+            fn = entry['path']
+            new_name = entry['correction'] if 'correction' in entry else entry['suggestion']
+            directory = os.path.split(fn)[0]
+            os.rename(fn, os.path.join(directory, new_name))
+        print('done.')
 
 
 class MyApp(App):
