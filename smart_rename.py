@@ -1,8 +1,9 @@
 from collections import namedtuple as ntup
+import json
 import os
 
 from cement import App, CaughtSignal, Controller, get_version
-import hcl2
+from cement.utils.misc import init_defaults
 
 from segmenter import Segmenter
 
@@ -14,18 +15,31 @@ smartrename v%s
 """ % get_version()
 
 
+# configuration defaults
+CONFIG = init_defaults('smartrename', 'segmenter')
+CONFIG['segmenter']['ngrams_file'] = 'ngrams.json'
+
+
 class Renamer():
     
     lower_list = ["a", "an", "the", "and", "but", "or", "for", "nor", "with", 
                   "to", "on", "as", "at", "by", "in", "of", "mid", "off", 
                   "per", "qua", "re", "up", "via", "o'", "'n'", "n'"]
     
-    def __init__(self, config = None):
+    def __init__(self, app, config = None):
         
-        self._ws = Segmenter()
+        self.app = app
         
-        #TODO: Get unigrams and bigrams from config object (unigrams and bigrams coming from different files)
-        print(type(config))
+        ngrams_file = config.get('segmenter', 'ngrams_file')
+        self.app.log.debug(f'Trying to load ngrams file {ngrams_file}')
+        try:
+            with open(ngrams_file, 'r') as nf:
+                ngrams = json.load(nf)
+                self.app.log.debug(f'Loaded ngrams file {ngrams_file}.')
+        except FileNotFoundError as err:
+            self.app.log.info(f'Ngrams file {ngrams_file} not found. Using default configuration.')
+
+        self._ws = Segmenter(ngrams)
     
     def suggest_correction(self, filepath):
         filename = os.path.basename(filepath)
@@ -34,7 +48,6 @@ class Renamer():
         result_segments = []
         # Process each segment individually
         for token in filename.split('_'):
-            print(token)
             words = self._ws.segment(token)
             # To title case
             words = [
@@ -68,16 +81,8 @@ class Base(Controller):
 
         # Initialize classes
         print('Initializing')
-        config = {}
-        self.app.log.debug('trying to load config file')
-        try:
-            with open('config.hcl', 'r') as cf:
-                config = hcl2.load(cf)
-                self.app.log.debug('loaded config file config.hcl.')
-        except FileNotFoundError as err:
-            self.app.log.info('config file config.hcl not found. Using default configuration.')
-
-        r = Renamer(config)
+        config = self.app.config
+        r = Renamer(self.app, config)
 
         # Startup        
         print('Start processing files', os.linesep)
@@ -132,6 +137,16 @@ class MyApp(App):
     class Meta:
         # application label
         label = 'smartrename'
+        
+        # initialize application defaults
+        extensions = [
+            'yaml',
+        ]
+        config_defaults = CONFIG
+        config_handler = 'yaml'
+        config_files = [
+                './smartrename.yml'
+        ]
 
         # register handlers
         handlers = [

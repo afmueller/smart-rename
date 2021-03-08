@@ -1,0 +1,5 @@
+smartrename:
+
+segmenter:
+### Path to file with additional ngram data
+# ngrams_file: ./ngrams.json
