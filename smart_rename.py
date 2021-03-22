@@ -120,7 +120,7 @@ class Base(Controller):
                 raise NotImplementedError()
             elif (answer == '?'):
                 # print help
-                raise NotImplementedError()
+                print_help()
             elif ((answer == 'y') or (answer == '')):
                 # default option: accept suggestions
                 suggestions_accepted = True
@@ -133,6 +133,16 @@ class Base(Controller):
             directory = os.path.split(fn)[0]
             os.rename(fn, os.path.join(directory, new_name))
         print('done.')
+
+
+def print_help():
+    print('Available options:')
+    print('y - Accept suggestions')
+    print('a - Abort')
+    print('e - Edit suggestions')
+    print('l - Switch language')
+    print('? - Print help')
+    print()
 
 
 class MyApp(App):
