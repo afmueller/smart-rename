@@ -1,8 +1,10 @@
 import json
 import os
+import re
 
 from cement import App, CaughtSignal, Controller, get_version
 from cement.utils.misc import init_defaults
+from num2words import num2words
 
 from segmenter import Segmenter
 
@@ -44,6 +46,10 @@ class Renamer():
         filename = os.path.basename(filepath)
         filename, ext = os.path.splitext(filename)
         
+        # Look for ending '2e', '3e' etc giving edition number
+        edition_match = re.match('(.*)(\d)e$', filename)
+        filename, edition = edition_match.groups() if edition_match else (filename, '')
+        
         result_segments = []
         # Process each segment individually
         for token in filename.split('_'):
@@ -57,7 +63,12 @@ class Renamer():
             ]
             result_segments.append(' '.join(words))
 
-        return " - ".join(result_segments) + ext
+        # Join suggestions for segments
+        result = " - ".join(result_segments)
+        # Add edition information
+        if edition:
+            result = result + ' ({} edition)'.format(num2words(edition, to='ordinal_num'))
+        return result + ext
 
 
 class Base(Controller):
